@@ -1,22 +1,8 @@
-"""
-Utilities for constructing language models, implemented in python
-Some of the classes and methods in this file were originally implemented by Adam Pauls and Dan Klein of UC Berkley
-
-Note:
-	- The tokens undergo little processing. I did a few things like removing double quotes, end of sentence punctuation, splitting commas out from words
-		- You can edit this to your liking in the method txtToSentences(text_file) at the bottom of the file.
-	- I did not implement the testing classes of the original libraries
-"""
-
-
 from abc import ABC, abstractmethod
-import pdb
+import numpy as np
 from math import log10
 
-null = -1
-
-# Size of the wordCounter variable (list containing counts of unigrams)
-wordCounterSize = 200 # For LRRH.txt, 200 is fine
+null = 0
 
 class NgramLanguageModel(ABC):
 
@@ -28,11 +14,11 @@ class NgramLanguageModel(ABC):
 	stop = '</s>'
 
 	@abstractmethod
-	def __init__(self):
+	def __init__():
 		pass
 
 	@abstractmethod
-	def getOrder(self):
+	def getOrder():
 		pass
 
 	@abstractmethod
@@ -50,66 +36,46 @@ class EmpericalUnigramLanguageModel(NgramLanguageModel):
 	Empircal unigram model. Inherits NgramLanguageModel class.
 	
 	__init__
-	:param trainingData:	List of strings to train the data on. Strings are sentences.
+	:param trainingData:	List of strings to train the data on. Strings are sentences
+
 	"""
 
 	def __init__(self, trainingData):
 
 		self.total = 0
-		self.wordCounter = [0]*200
+		self.wordCounter = np.empty(10)
 
 		print("Building EmpericalUnigramLanguageModel...")
 
 		sent = 0
-		self.StrInd = StringIndexer()
 
 		for s in trainingData:
 			sent += 1
 			stoppedSentence = listOfWords(s)
 			stoppedSentence = [self.start] + stoppedSentence + [self.stop]
-			for word in stoppedSentence:
-				index = self.StrInd.addAndGetIndex(word)
+			for word in s:
+				index = EnglishWordIndexer().getIndexer().addAndGetIndex(word)
 				if (index >= len(self.wordCounter)):
 					self.wordCounter = copyOf(self.wordCounter, len(self.wordCounter)*2)
 				self.wordCounter[index] += 1
 
 		print("Done building EmpericalUnigramLanguageModel.")
-		self.wordCounter = copyOf(self.wordCounter, self.StrInd.size())
-		self.total = sum(self.wordCounter)
+		self.wordCounter = copyOf(self.wordCounter, EnglishWordIndexer().getIndexer().size())
+		total = sum(self.wordCounter)
 
 
-	def getOrder(self):
-		"""
-		Get the order of the unigram model.
-
-		:return 1: Unigram order is 1
-		"""
+	def getOrder():
 		return(1)
 
-	def getNgramLogProbability(self, testSentence):
-		"""
-		Use to compute the probability of testSentence, given the trained unigram model. For accurate results, use the
-		same rules for formatting the sentences as the txtToSentences() function at the bottom of the file. For example,
-		if the comma is broken out there, make sure to make your testSentence = "Hi , how are you"
-
-		:param testSentence: Single string containing words, eg. "Hello how are you?"
-		:return log_prob: log probability of sequence of words contained in testSentence given unigram model
-		"""
-		words = listOfWords(testSentence)
-		log_prob = 0
-
-		for word in words:
-			indx = self.StrInd.indexOf(word)
-			count = self.wordCounter[indx]
-			if count==0:
-				log_prob += 0
-			else:
-				log_prob += log10(count/(self.total+1))
-
-		return(log_prob)
+	def getNgramLogProbability(ngramIntArr, fromInt, toInt):
+		
+		if (toInt - fromInt != 1):
+			print("WARNING: to - from > 1 for EmpericalUnigramLanguageModel")
+		word = ngramIntArr[fromInt]
+		return(log10(1) if (word < 0 or word >= len(self.wordCounter)) else log10(self.wordCounter[word]/(self.total + 1.0)))
 
 
-	def getCount(self, ngramIntArr):
+	def getCount(ngramIntArr):
 		
 		if (len(ngramIntArr)>1):
 			return(0)
@@ -118,14 +84,18 @@ class EmpericalUnigramLanguageModel(NgramLanguageModel):
 			return(0)
 		return(self.wordCounter[word])
 
-
-class StringIndexer:
-
-	"""
-	StringIndexer class used for managing the training data seen at train time.
-	"""
+class EnglishWordIndexer():
 
 	def __init__(self):
+		self.indexer = StringIndexer()
+
+	def getIndexer(self):
+		return(self.indexer)
+
+class StringIndexer():
+
+	def __init__(self):
+		self.serialVersionUID = -8769544079133660516
 		self.objects = []
 		self.indexes = TIntOpenHashMap()
 
@@ -147,42 +117,40 @@ class StringIndexer:
 			return(index)
 
 		# self.size()?
-		newIndex = self.size()
-		self.objects.append(elem)
-		self.indexes.put(elem, newIndex)
+		newIndex = size()
+		objects.add(elem)
+		indexes.put(elem, newIndex)
 		return(newIndex)
 
+	#NOT IMPLEMENTED:
+	# def add(elem)
 
-class TIntOpenHashMap:
 
-	"""
-	Hash map for storing keys. Rehash not yet implemented (data set is very small, so we can preallocate a large enough
-	initial capacity and not worry about overloading the hash table
-	"""
+class TIntOpenHashMap():
 
-	def __init__(self, initialCapacity=wordCounterSize, loadFactor = .7):
+	def __init__(self, initialCapacity=10, loadFactor = .7):
 		self.size = 0
 		self.MAX_LOAD_FACTOR = loadFactor
 		cap = max(5, int(initialCapacity/loadFactor))
-		self.values = [-1]*cap
-		self.keys = ['null']*cap
+		self.values = np.array([-1]*cap)
+		self.keys = np.array(['']*cap)
 
 	def put(self, k, v):
-		if (self.size/len(self.keys) > self.MAX_LOAD_FACTOR):
-			self.rehash()
-		return(self.putHelp(k, v, self.keys, self.values))
+		if (self.size/len(keys) > MAX_LOAD_FACTOR):
+			rehash()
+		return(putHelp(k, v, self.keys, self.values))
 
 	def putHelp(self, k, v, keyArray, valueArray):
-		pos = self.getInitialPos(k, keyArray)
+		pos = getInitialPos(k, keyArray)
 		curr = keyArray[pos]
-		while (curr != 'null' and not(curr == k)):
+		while (curr != null and not(curr == k)):
 			pos += 1
 			if (pos == len(keyArray)):
 				pos = 0
 			curr = keyArray[pos]
 		valueArray[pos] = v
-		if (curr=='null'):
-			self.size += 1
+		if (curr==null):
+			size += 1
 			keyArray[pos] = k;
 			return(True)
 		return(False)
@@ -198,7 +166,7 @@ class TIntOpenHashMap:
 	def find(self, k):
 		pos = self.getInitialPos(k, self.keys)
 		curr = self.keys[pos]
-		while (curr != 'null' and not(curr == k)):
+		while (curr != null and not(curr == k)):
 			pos += 1
 			if (pos == len(self.keys)):
 				pos = 0
@@ -207,43 +175,35 @@ class TIntOpenHashMap:
 
 	def get(self, k):
 		pos = self.find(k)
-		return(self.values[pos])
+		return(pos)
 
 	def increment(self, k, c):
-		pos = self.find(k)
+		pos = find(k)
 		currKey = self.keys[pos]
-		if (currKey=='null'):
-			self.put(k, c)
+		if (currKey==null):
+			put(k, c)
 		else:
 			self.values[pos] += 1
 
 	# Implement later if needed... for now throw false assert
-	def Entry(self):
+	def Entry():
 		print("\nFunction not yet defined\n")
 		assert(False)
 
-	def EntryIterator(self):
+	def EntryIterator():
 		print("\nFunction not yet defined\n")
 		assert(False)
 
-	def MapIterator(self):
+	def MapIterator():
 		print("\nFunction not yet defined\n")
 		assert(False)
 		
-	def rehash(self):
+	def rehash():
 		print("\nFunction not yet defined\n")
 		assert(False)
 
 def copyOf(arr, new_len):
-
-	"""
-	Used to extend the length of arr to size of new_len.
-	:param arr: initial array to be resized
-	:param new_len: size of the new array
-	:return:
-	"""
-
-	ret = [0]*new_len
+	ret = np.empty(new_len)
 	try:
 		ret[:len(arr)] = arr
 	except:
@@ -252,26 +212,16 @@ def copyOf(arr, new_len):
 
 def txtToSentences(text_file):
 
-	"""
-	Convert text file to a list of sentences. Perform any tokenization rules you need here.
-	:param text_file:
-	:return:
-	"""
-
 	with open(text_file) as reader:
 		sentences = [s for s in reader]
 
 	sentences = [sen for sen in sentences if sen != '\n']
 
 	for s in range(len(sentences)):
-
-		# Tokenization rules
+		
 		sentences[s] = sentences[s].replace('\n', '')
+		#TODO: Not sure how java project deals with periods yet. 
 		sentences[s] = sentences[s].replace('.', '')
-		sentences[s] = sentences[s].replace('!', '')
-		sentences[s] = sentences[s].replace('?', '')
-		sentences[s] = sentences[s].replace(',', ' ,')
-		sentences[s] = sentences[s].replace('"', '')
 	
 	return(sentences)
 
